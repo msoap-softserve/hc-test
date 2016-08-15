@@ -30,7 +30,7 @@ func TestParse(t *testing.T) {
 		}
 
 		if json != item.json {
-			t.Errorf("%d. expected: %#v, real: %#v", i, item.json, json)
+			t.Errorf("%d. Message: '%s', expected: %#v, real: %#v", i, item.msg, item.json, json)
 		}
 	}
 }
