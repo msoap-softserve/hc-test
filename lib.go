@@ -6,11 +6,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/koding/cache"
 	"github.com/msoap/html2data"
 )
 
 // MaxEmoticonsLength - emoticons length
 const MaxEmoticonsLength = 15
+
+// DefaultURLCacheSize - size of cache for titles from URLs
+const DefaultURLCacheSize = 100
 
 // Link - one link, url and title
 type Link struct {
@@ -25,19 +29,36 @@ type ParsedMessage struct {
 	Links     []Link   `json:"links,omitempty"`
 }
 
+// HChat - object for parsed chat messages
+type HChat struct {
+	cache cache.Cache
+}
+
+// NewWParameters - get new object for parse chat messages
+func NewWParameters(cacheSize int) HChat {
+	return HChat{
+		cache: cache.NewLRU(cacheSize),
+	}
+}
+
+// New - new object for parse with default parameters
+func New() HChat {
+	return NewWParameters(DefaultURLCacheSize)
+}
+
 // Parse chat message, returns JSON string
-func Parse(msg string) (JSON string, err error) {
+func (parser HChat) Parse(msg string) (JSON string, err error) {
 	parsedMessage := ParsedMessage{}
 
-	if mentions := parseMentions(msg); len(mentions) > 0 {
+	if mentions := parser.parseMentions(msg); len(mentions) > 0 {
 		parsedMessage.Mentions = mentions
 	}
 
-	if emoticons := parseEmoticons(msg); len(emoticons) > 0 {
+	if emoticons := parser.parseEmoticons(msg); len(emoticons) > 0 {
 		parsedMessage.Emoticons = emoticons
 	}
 
-	links, err := parseLinks(msg)
+	links, err := parser.parseLinks(msg)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +74,7 @@ func Parse(msg string) (JSON string, err error) {
 // Mentions parse
 var mentionsRe = regexp.MustCompile(`@\w+`)
 
-func parseMentions(msg string) []string {
+func (parser HChat) parseMentions(msg string) []string {
 	mentions := mentionsRe.FindAllString(msg, -1)
 	for i := range mentions {
 		mentions[i] = strings.TrimPrefix(mentions[i], "@")
@@ -65,7 +86,7 @@ func parseMentions(msg string) []string {
 // Emoticons parse
 var emoticonsRe = regexp.MustCompile(`\(\w+\)`)
 
-func parseEmoticons(msg string) []string {
+func (parser HChat) parseEmoticons(msg string) []string {
 	emoticons := []string{}
 	for _, emoticon := range emoticonsRe.FindAllString(msg, -1) {
 		emoticon = strings.TrimPrefix(strings.TrimSuffix(emoticon, ")"), "(")
@@ -80,12 +101,29 @@ func parseEmoticons(msg string) []string {
 // Links parse
 var linksRe = regexp.MustCompile(`https?://[a-zA-Z0-9\-]{1,64}(\.[a-zA-Z0-9\-]{1,64})*(:\d+)?(\S+)?`)
 
-func parseLinks(msg string) (result []Link, err error) {
+func (parser HChat) parseLinks(msg string) (result []Link, err error) {
+	emptyResult := []Link{}
+
 	for _, link := range linksRe.FindAllString(msg, -1) {
-		title, err := html2data.FromURL(link).GetDataSingle("title")
-		if err != nil {
-			return []Link{}, err
+		cachedTitleRaw, err := parser.cache.Get(link)
+		if err != nil && err != cache.ErrNotFound {
+			return emptyResult, err
 		}
+
+		title := ""
+		if err == cache.ErrNotFound {
+			title, err = html2data.FromURL(link).GetDataSingle("title")
+			if err != nil {
+				return emptyResult, err
+			}
+
+			if err := parser.cache.Set(link, title); err != nil {
+				return emptyResult, err
+			}
+		} else {
+			title = cachedTitleRaw.(string)
+		}
+
 		result = append(result, Link{URL: link, Title: title})
 	}
 

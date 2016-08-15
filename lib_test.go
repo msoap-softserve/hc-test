@@ -1,8 +1,22 @@
 package hchat
 
-import "testing"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
 func TestParse(t *testing.T) {
+	// test http server
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "<html><title>2016 Rio Olympic Games | NBC Olympics</title><body><div>data</div></body></html>")
+	}))
+
+	defer ts.Close()
+	URL := ts.URL
+
 	testCases := []struct {
 		msg  string
 		json string
@@ -29,14 +43,23 @@ func TestParse(t *testing.T) {
 			`{"emoticons":["megusta","coffee"]}`,
 			nil,
 		}, {
-			"Olympics are starting soon; http://www.nbcolympics.com",
-			`{"links":[{"url":"http://www.nbcolympics.com","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
+			"Olympics are starting soon; " + URL,
+			`{"links":[{"url":"` + URL + `","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
 			nil,
+		}, { // test cache
+			"Another message with same url: " + URL,
+			`{"links":[{"url":"` + URL + `","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
+			nil,
+		}, {
+			"Olympics are starting soon; http://host.fake.example",
+			``,
+			errors.New("error"),
 		},
 	}
 
+	chatParser := New()
 	for i, item := range testCases {
-		json, err := Parse(item.msg)
+		json, err := chatParser.Parse(item.msg)
 
 		if err != nil && item.err == nil {
 			t.Errorf("%d. Got error: %s", i, err)
