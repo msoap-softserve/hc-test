@@ -51,6 +51,14 @@ func TestParse(t *testing.T) {
 			`{"links":[{"url":"` + URL + `","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
 			nil,
 		}, {
+			"@user! Olympics are starting soon; " + URL,
+			`{"mentions":["user"],"links":[{"url":"` + URL + `","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
+			nil,
+		}, {
+			"@user! Olympics are starting soon (smile); " + URL,
+			`{"mentions":["user"],"emoticons":["smile"],"links":[{"url":"` + URL + `","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
+			nil,
+		}, {
 			"Olympics are starting soon; http://host.fake.example",
 			``,
 			errors.New("error"),
