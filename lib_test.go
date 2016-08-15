@@ -16,6 +16,18 @@ func TestParse(t *testing.T) {
 			"simple message",
 			"{}",
 			nil,
+		}, {
+			"@chris you around?",
+			`{"mentions":["chris"]}`,
+			nil,
+		}, {
+			"Good morning! (megusta) (coffee)",
+			`{"emoticons":["megusta","coffee"]}`,
+			nil,
+		}, {
+			"Olympics are starting soon; http://www.nbcolympics.com",
+			`{"links":[{"url":"http://www.nbcolympics.com","title":"NBC Olympics | 2014 NBC Olympics in Sochi Russia"}]}`,
+			nil,
 		},
 	}
 
@@ -30,7 +42,7 @@ func TestParse(t *testing.T) {
 		}
 
 		if json != item.json {
-			t.Errorf("%d. Message: '%s', expected: %#v, real: %#v", i, item.msg, item.json, json)
+			t.Errorf("%d.\nmessage: %#v\nexpected: %#v\nreal:     %#v", i, item.msg, item.json, json)
 		}
 	}
 }
