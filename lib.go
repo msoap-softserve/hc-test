@@ -23,15 +23,20 @@ type ParsedMessage struct {
 // Parse chat message, returns JSON string
 func Parse(msg string) (JSON string, err error) {
 	parsedMessage := ParsedMessage{}
-	mentions := parseMentions(msg)
-	if len(mentions) > 0 {
+
+	if mentions := parseMentions(msg); len(mentions) > 0 {
 		parsedMessage.Mentions = mentions
+	}
+
+	if emoticons := parseEmoticons(msg); len(emoticons) > 0 {
+		parsedMessage.Emoticons = emoticons
 	}
 
 	jsonBytes, err := json.Marshal(parsedMessage)
 	return string(jsonBytes), err
 }
 
+// Mentions parse
 var mentionsRe = regexp.MustCompile(`@\w+`)
 
 func parseMentions(msg string) []string {
@@ -41,4 +46,16 @@ func parseMentions(msg string) []string {
 	}
 
 	return mentions
+}
+
+// Emoticons parse
+var emoticonsRe = regexp.MustCompile(`\(\w+\)`)
+
+func parseEmoticons(msg string) []string {
+	emoticons := emoticonsRe.FindAllString(msg, -1)
+	for i := range emoticons {
+		emoticons[i] = strings.TrimPrefix(strings.TrimSuffix(emoticons[i], ")"), "(")
+	}
+
+	return emoticons
 }
