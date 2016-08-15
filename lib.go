@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// MaxEmoticonsLength - emoticons length
+const MaxEmoticonsLength = 15
+
 // Link - one link, url and title
 type Link struct {
 	URL   string `json:"url"`
@@ -52,9 +55,12 @@ func parseMentions(msg string) []string {
 var emoticonsRe = regexp.MustCompile(`\(\w+\)`)
 
 func parseEmoticons(msg string) []string {
-	emoticons := emoticonsRe.FindAllString(msg, -1)
-	for i := range emoticons {
-		emoticons[i] = strings.TrimPrefix(strings.TrimSuffix(emoticons[i], ")"), "(")
+	emoticons := []string{}
+	for _, emoticon := range emoticonsRe.FindAllString(msg, -1) {
+		emoticon = strings.TrimPrefix(strings.TrimSuffix(emoticon, ")"), "(")
+		if len(emoticon) <= MaxEmoticonsLength {
+			emoticons = append(emoticons, emoticon)
+		}
 	}
 
 	return emoticons
