@@ -17,8 +17,8 @@ func TestParse(t *testing.T) {
 			"{}",
 			nil,
 		}, {
-			"@chris you around?",
-			`{"mentions":["chris"]}`,
+			"@chris you around? @john42",
+			`{"mentions":["chris","john42"]}`,
 			nil,
 		}, {
 			"Good morning! (megusta) (coffee)",
