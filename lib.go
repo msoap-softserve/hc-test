@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/msoap/html2data"
 )
 
 // MaxEmoticonsLength - emoticons length
@@ -35,7 +37,16 @@ func Parse(msg string) (JSON string, err error) {
 		parsedMessage.Emoticons = emoticons
 	}
 
+	links, err := parseLinks(msg)
+	if err != nil {
+		return "", err
+	}
+	if len(links) > 0 {
+		parsedMessage.Links = links
+	}
+
 	jsonBytes, err := json.Marshal(parsedMessage)
+
 	return string(jsonBytes), err
 }
 
@@ -64,4 +75,19 @@ func parseEmoticons(msg string) []string {
 	}
 
 	return emoticons
+}
+
+// Links parse
+var linksRe = regexp.MustCompile(`https?://[a-zA-Z0-9\-]{1,64}(\.[a-zA-Z0-9\-]{1,64})*(:\d+)?(\S+)?`)
+
+func parseLinks(msg string) (result []Link, err error) {
+	for _, link := range linksRe.FindAllString(msg, -1) {
+		title, err := html2data.FromURL(link).GetDataSingle("title")
+		if err != nil {
+			return []Link{}, err
+		}
+		result = append(result, Link{URL: link, Title: title})
+	}
+
+	return result, nil
 }

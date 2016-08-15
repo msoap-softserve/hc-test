@@ -30,7 +30,7 @@ func TestParse(t *testing.T) {
 			nil,
 		}, {
 			"Olympics are starting soon; http://www.nbcolympics.com",
-			`{"links":[{"url":"http://www.nbcolympics.com","title":"NBC Olympics | 2014 NBC Olympics in Sochi Russia"}]}`,
+			`{"links":[{"url":"http://www.nbcolympics.com","title":"2016 Rio Olympic Games | NBC Olympics"}]}`,
 			nil,
 		},
 	}
